@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  STUDENT
+  FACULTY
+}
+
+enum IngestionStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
+enum KnowledgeState {
+  NOT_DEMONSTRATED
+  PARTIAL
+  DEMONSTRATED
+  NEEDS_REFRESH
+}
+
+model User {
+  id              String                  @id @default(uuid())
+  name            String
+  email           String                  @unique
+  passwordHash    String
+  role            Role                    @default(STUDENT)
+  avatarUrl       String?
+  isVerified      Boolean                 @default(false)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  deletedAt       DateTime?
+  courses         Course[]                @relation("FacultyToCourse")
+  enrollments     CourseEnrollment[]
+  chatSessions    ChatSession[]
+  knowledgeStates StudentKnowledgeState[]
+  quizAttempts    QuizAttempt[]
+}
+
+model Course {
+  id              String                  @id @default(uuid())
+  title           String
+  description     String?
+  courseCode      String                  @unique
+  semester        String?
+  facultyId       String
+  isActive        Boolean                 @default(true)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  deletedAt       DateTime?
+  faculty         User                    @relation("FacultyToCourse", fields: [facultyId], references: [id])
+  enrollments     CourseEnrollment[]
+  documents       Document[]
+  concepts        Concept[]
+  knowledgeStates StudentKnowledgeState[]
+  chatSessions    ChatSession[]
+  quizAttempts    QuizAttempt[]
+
+  @@index([facultyId])
+}
+
+model CourseEnrollment {
+  id        String   @id @default(uuid())
+  courseId  String
+  studentId String
+  joinedAt  DateTime @default(now())
+  course    Course   @relation(fields: [courseId], references: [id])
+  student   User     @relation(fields: [studentId], references: [id])
+
+  @@unique([courseId, studentId])
+  @@index([courseId])
+  @@index([studentId])
+}
+
+model Document {
+  id           String          @id @default(uuid())
+  courseId     String
+  fileName     String
+  fileUrl      String
+  mimeType     String
+  sizeBytes    Int
+  status       IngestionStatus @default(PENDING)
+  errorMessage String?
+  uploadedAt   DateTime        @default(now())
+  processedAt  DateTime?
+  deletedAt    DateTime?
+  course       Course          @relation(fields: [courseId], references: [id])
+
+  @@index([courseId])
+  @@index([status])
+}
+
+model Concept {
+  id              String                  @id @default(uuid())
+  courseId        String
+  name            String
+  description     String?
+  posX            Float?
+  posY            Float?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  deletedAt       DateTime?
+  course          Course                  @relation(fields: [courseId], references: [id])
+  asChild         ConceptEdge[]           @relation("ChildConcept")
+  asParent        ConceptEdge[]           @relation("ParentConcept")
+  knowledgeStates StudentKnowledgeState[]
+  quizAttempts    QuizAttempt[]
+
+  @@unique([courseId, name])
+  @@index([courseId])
+}
+
+model ConceptEdge {
+  id              String  @id @default(uuid())
+  parentConceptId String
+  childConceptId  String
+  parent          Concept @relation("ParentConcept", fields: [parentConceptId], references: [id])
+  child           Concept @relation("ChildConcept", fields: [childConceptId], references: [id])
+
+  @@unique([parentConceptId, childConceptId])
+  @@index([childConceptId])
+}
+
+model StudentKnowledgeState {
+  id          String         @id @default(uuid())
+  studentId   String
+  courseId    String
+  conceptId   String
+  state       KnowledgeState @default(NOT_DEMONSTRATED)
+  lastUpdated DateTime       @updatedAt
+  student     User           @relation(fields: [studentId], references: [id])
+  course      Course         @relation(fields: [courseId], references: [id])
+  concept     Concept        @relation(fields: [conceptId], references: [id])
+
+  @@unique([studentId, conceptId])
+  @@index([courseId])
+  @@index([studentId, courseId])
+}
+
+model ChatSession {
+  id        String    @id @default(uuid())
+  studentId String
+  courseId  String
+  messages  Json
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  student   User      @relation(fields: [studentId], references: [id])
+  course    Course    @relation(fields: [courseId], references: [id])
+
+  @@index([studentId])
+  @@index([courseId])
+}
+
+model QuizAttempt {
+  id          String    @id @default(uuid())
+  studentId   String
+  courseId    String
+  conceptId   String
+  questions   Json
+  answers     Json?
+  score       Float?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
+  student     User      @relation(fields: [studentId], references: [id])
+  course      Course    @relation(fields: [courseId], references: [id])
+  concept     Concept   @relation(fields: [conceptId], references: [id])
+
+  @@index([studentId])
+  @@index([courseId])
+  @@index([conceptId])
+}
