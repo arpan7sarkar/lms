@@ -2,3 +2,7 @@ node_modules
 noneed
 .env
 dist
+
+tests
+docs
+coverage

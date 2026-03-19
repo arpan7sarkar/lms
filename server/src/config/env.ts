@@ -26,5 +26,7 @@ export const env = {
   redisUrl: process.env.REDIS_URL,
   chromaUrl: process.env.CHROMA_URL,
   geminiApiKey: process.env.GEMINI_API_KEY,
+  uploadDir: process.env.UPLOAD_DIR ?? "uploads",
+  maxUploadBytes: Number(process.env.MAX_UPLOAD_BYTES ?? 15728640),
+  enableIngestionWorker: process.env.ENABLE_INGESTION_WORKER !== "false",
 };
-
