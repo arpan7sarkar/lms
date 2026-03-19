@@ -1,0 +1,316 @@
+openapi: 3.0.3
+info:
+  title: SocraticAI API
+  version: 1.0.0
+  description: >
+    Backend API contract for SocraticAI (LMS + Socratic tutor).
+    This spec is drafted from the PRD and should be treated as the source of truth for frontend integration.
+servers:
+  - url: http://localhost:4000
+tags:
+  - name: Health
+  - name: Auth
+  - name: Courses
+  - name: Documents
+  - name: Concepts
+  - name: Tutor
+  - name: Knowledge
+  - name: Quiz
+  - name: Analytics
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Envelope:
+      type: object
+      additionalProperties: false
+      required: [success, data, error, meta]
+      properties:
+        success:
+          type: boolean
+        data:
+          nullable: true
+        error:
+          nullable: true
+        meta:
+          type: object
+    Error:
+      type: object
+      additionalProperties: false
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: VALIDATION_ERROR
+        message:
+          type: string
+          example: Invalid input
+    HealthData:
+      type: object
+      additionalProperties: false
+      required: [status, time]
+      properties:
+        status:
+          type: string
+          example: ok
+        time:
+          type: string
+          format: date-time
+        nodeEnv:
+          type: string
+          example: development
+    SignupRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password, role]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+        role:
+          type: string
+          enum: [FACULTY, STUDENT]
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+    AuthResponse:
+      type: object
+      additionalProperties: false
+      required: [token, user]
+      properties:
+        token: { type: string }
+        user:
+          type: object
+          additionalProperties: false
+          required: [id, email, role]
+          properties:
+            id: { type: string }
+            email: { type: string, format: email }
+            role: { type: string, enum: [FACULTY, STUDENT] }
+    Course:
+      type: object
+      additionalProperties: false
+      required: [id, title]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        joinCode: { type: string, nullable: true }
+    CreateCourseRequest:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title: { type: string }
+        description: { type: string }
+    JoinCourseRequest:
+      type: object
+      additionalProperties: false
+      required: [joinCode]
+      properties:
+        joinCode: { type: string }
+    TutorQuestionRequest:
+      type: object
+      additionalProperties: false
+      required: [courseId, question]
+      properties:
+        courseId: { type: string }
+        question: { type: string }
+        sessionId: { type: string, nullable: true }
+    TutorQuestionResponse:
+      type: object
+      additionalProperties: false
+      required: [sessionId, mode]
+      properties:
+        sessionId: { type: string }
+        mode:
+          type: string
+          description: Whether the tutor asks a Socratic prerequisite question or answers directly.
+          enum: [SOCRATIC, ANSWER]
+        gapConceptId: { type: string, nullable: true }
+        message: { type: string }
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check (non-versioned)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/HealthData" }
+
+  /api/v1/health:
+    get:
+      tags: [Health]
+      summary: Health check (versioned)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/HealthData" }
+
+  /api/v1/auth/signup:
+    post:
+      tags: [Auth]
+      summary: Signup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SignupRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/AuthResponse" }
+
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/AuthResponse" }
+
+  /api/v1/auth/me:
+    get:
+      tags: [Auth]
+      summary: Current user
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        additionalProperties: false
+                        required: [id, email, role]
+                        properties:
+                          id: { type: string }
+                          email: { type: string, format: email }
+                          role: { type: string, enum: [FACULTY, STUDENT] }
+
+  /api/v1/courses:
+    get:
+      tags: [Courses]
+      summary: List my courses
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/Course" }
+    post:
+      tags: [Courses]
+      summary: Create course (faculty)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateCourseRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/Course" }
+
+  /api/v1/courses/join:
+    post:
+      tags: [Courses]
+      summary: Join course (student)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/JoinCourseRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Envelope" }
+
+  /api/v1/tutor/question:
+    post:
+      tags: [Tutor]
+      summary: Submit student question (gap detection + Socratic)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TutorQuestionRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/TutorQuestionResponse" }
+
