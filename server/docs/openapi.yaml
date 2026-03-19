@@ -66,8 +66,9 @@ components:
     SignupRequest:
       type: object
       additionalProperties: false
-      required: [email, password, role]
+      required: [name, email, password]
       properties:
+        name: { type: string, minLength: 2, maxLength: 80 }
         email: { type: string, format: email }
         password: { type: string, minLength: 8 }
         role:
@@ -102,7 +103,11 @@ components:
         id: { type: string }
         title: { type: string }
         description: { type: string, nullable: true }
+        semester: { type: string, nullable: true }
         joinCode: { type: string, nullable: true }
+        isActive: { type: boolean }
+        facultyId: { type: string }
+        createdAt: { type: string, format: date-time }
     CreateCourseRequest:
       type: object
       additionalProperties: false
@@ -110,6 +115,7 @@ components:
       properties:
         title: { type: string }
         description: { type: string }
+        semester: { type: string }
     JoinCourseRequest:
       type: object
       additionalProperties: false
@@ -290,7 +296,34 @@ paths:
           description: OK
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/Envelope" }
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/Course" }
+
+  /api/v1/courses/{courseId}:
+    get:
+      tags: [Courses]
+      summary: Get one course if user has access
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/Course" }
 
   /api/v1/tutor/question:
     post:
@@ -313,4 +346,3 @@ paths:
                   - type: object
                     properties:
                       data: { $ref: "#/components/schemas/TutorQuestionResponse" }
-
