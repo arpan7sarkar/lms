@@ -1,11 +1,13 @@
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import multer from "multer";
 
 import { env } from "./config/env";
 import { sendError } from "./lib/http";
 import { authRouter } from "./routes/auth";
 import { coursesRouter } from "./routes/courses";
+import { documentsRouter } from "./routes/documents";
 import { healthRouter } from "./routes/health";
 
 export const createApp = () => {
@@ -29,8 +31,19 @@ export const createApp = () => {
   );
   app.use("/api/v1/auth", authRouter);
   app.use("/api/v1/courses", coursesRouter);
+  app.use("/api/v1/documents", documentsRouter);
   app.use("/health", healthRouter);
   app.use("/api/v1/health", healthRouter);
+
+  app.use((error: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (error instanceof multer.MulterError) {
+      return sendError(res, { code: "UPLOAD_ERROR", message: error.message }, 400);
+    }
+    if (error instanceof Error) {
+      return sendError(res, { code: "REQUEST_ERROR", message: error.message }, 400);
+    }
+    return next(error);
+  });
 
   app.use((_req, res) => {
     sendError(res, { code: "NOT_FOUND", message: "Not found" }, 404);

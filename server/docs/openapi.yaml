@@ -122,6 +122,31 @@ components:
       required: [joinCode]
       properties:
         joinCode: { type: string }
+    UploadDocumentRequest:
+      type: object
+      additionalProperties: false
+      required: [courseId, file]
+      properties:
+        courseId: { type: string }
+        file:
+          type: string
+          format: binary
+    Document:
+      type: object
+      additionalProperties: false
+      required: [id, courseId, fileName, mimeType, sizeBytes, status, uploadedAt]
+      properties:
+        id: { type: string }
+        courseId: { type: string }
+        fileName: { type: string }
+        fileUrl: { type: string }
+        mimeType: { type: string }
+        sizeBytes: { type: integer }
+        status: { type: string, enum: [PENDING, PROCESSING, DONE, FAILED] }
+        errorMessage: { type: string, nullable: true }
+        processedAt: { type: string, format: date-time, nullable: true }
+        uploadedAt: { type: string, format: date-time }
+        chunkCount: { type: integer }
     TutorQuestionRequest:
       type: object
       additionalProperties: false
@@ -324,6 +349,69 @@ paths:
                   - type: object
                     properties:
                       data: { $ref: "#/components/schemas/Course" }
+
+  /api/v1/documents/upload:
+    post:
+      tags: [Documents]
+      summary: Upload file and queue ingestion (faculty)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { $ref: "#/components/schemas/UploadDocumentRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/Document" }
+
+  /api/v1/documents/course/{courseId}:
+    get:
+      tags: [Documents]
+      summary: List documents and ingestion statuses for a course (faculty)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/Document" }
+
+  /api/v1/documents/{id}:
+    delete:
+      tags: [Documents]
+      summary: Delete document and related chunks (faculty)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Envelope" }
 
   /api/v1/tutor/question:
     post:

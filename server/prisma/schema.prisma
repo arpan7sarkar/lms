@@ -57,6 +57,7 @@ model Course {
   faculty         User                    @relation("FacultyToCourse", fields: [facultyId], references: [id])
   enrollments     CourseEnrollment[]
   documents       Document[]
+  documentChunks  DocumentChunk[]
   concepts        Concept[]
   knowledgeStates StudentKnowledgeState[]
   chatSessions    ChatSession[]
@@ -91,9 +92,26 @@ model Document {
   processedAt  DateTime?
   deletedAt    DateTime?
   course       Course          @relation(fields: [courseId], references: [id])
+  chunks       DocumentChunk[]
 
   @@index([courseId])
   @@index([status])
+}
+
+model DocumentChunk {
+  id         String   @id @default(uuid())
+  documentId String
+  courseId   String
+  chunkIndex Int
+  content    String
+  startChar  Int
+  endChar    Int
+  createdAt  DateTime @default(now())
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex])
+  @@index([courseId, documentId])
 }
 
 model Concept {
