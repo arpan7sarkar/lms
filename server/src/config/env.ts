@@ -26,7 +26,10 @@ export const env = {
   redisUrl: process.env.REDIS_URL,
   chromaUrl: process.env.CHROMA_URL,
   geminiApiKey: process.env.GEMINI_API_KEY,
+  geminiEmbeddingModel: process.env.GEMINI_EMBEDDING_MODEL ?? "models/text-embedding-004",
+  embeddingConcurrency: Number(process.env.EMBEDDING_CONCURRENCY ?? 5),
   uploadDir: process.env.UPLOAD_DIR ?? "uploads",
   maxUploadBytes: Number(process.env.MAX_UPLOAD_BYTES ?? 15728640),
   enableIngestionWorker: process.env.ENABLE_INGESTION_WORKER !== "false",
+  chromaCollectionName: process.env.CHROMA_COLLECTION_NAME ?? "socratic_chunks",
 };
