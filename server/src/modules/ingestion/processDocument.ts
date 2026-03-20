@@ -1,6 +1,8 @@
 import { IngestionStatus } from "@prisma/client";
 
 import { prisma } from "../../lib/prisma";
+import { generateEmbeddings } from "../ai/embeddings";
+import { upsertDocumentVectors } from "../rag/chroma";
 import { chunkText } from "./chunkText";
 import { extractText } from "./extractText";
 import { IngestionJobData } from "./types";
@@ -17,6 +19,7 @@ export const processDocumentIngestion = async (job: IngestionJobData) => {
 
     const text = await extractText({ filePath: job.filePath, mimeType: job.mimeType });
     const chunks = chunkText(text, 400, 50);
+    const embeddings = await generateEmbeddings(chunks.map((chunk) => chunk.content));
 
     await prisma.$transaction([
       prisma.documentChunk.deleteMany({
@@ -35,6 +38,12 @@ export const processDocumentIngestion = async (job: IngestionJobData) => {
         }),
       ),
     ]);
+    await upsertDocumentVectors({
+      documentId: job.documentId,
+      courseId: job.courseId,
+      chunks,
+      embeddings,
+    });
 
     await prisma.document.update({
       where: { id: job.documentId },
@@ -56,4 +65,3 @@ export const processDocumentIngestion = async (job: IngestionJobData) => {
     throw error;
   }
 };
-

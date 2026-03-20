@@ -15,6 +15,7 @@ import { requireAuth, requireRole } from "../middlewares/auth";
 import { validate } from "../middlewares/validate";
 import { processDocumentIngestion } from "../modules/ingestion/processDocument";
 import { getIngestionQueue } from "../modules/ingestion/queue";
+import { deleteDocumentVectors } from "../modules/rag/chroma";
 
 const uploadsDir = path.resolve(process.cwd(), env.uploadDir);
 if (!fs.existsSync(uploadsDir)) {
@@ -231,6 +232,11 @@ documentsRouter.delete("/:id", async (req, res) => {
       },
     }),
   ]);
+  try {
+    await deleteDocumentVectors(document.id);
+  } catch (error) {
+    console.error(`Failed to delete document vectors for ${document.id}`, error);
+  }
 
   const absoluteFilePath = path.resolve(process.cwd(), document.fileUrl);
   try {
