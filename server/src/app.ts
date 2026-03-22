@@ -11,6 +11,7 @@ import { coursesRouter } from "./routes/courses";
 import { documentsRouter } from "./routes/documents";
 import { healthRouter } from "./routes/health";
 import { knowledgeRouter } from "./routes/knowledge";
+import { tutorRouter } from "./routes/tutor";
 
 export const createApp = () => {
   const app = express();
@@ -36,6 +37,7 @@ export const createApp = () => {
   app.use("/api/v1/concepts", conceptsRouter);
   app.use("/api/v1/documents", documentsRouter);
   app.use("/api/v1/knowledge", knowledgeRouter);
+  app.use("/api/v1/tutor", tutorRouter);
   app.use("/health", healthRouter);
   app.use("/api/v1/health", healthRouter);
 

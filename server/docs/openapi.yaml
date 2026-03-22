@@ -222,14 +222,17 @@ components:
     TutorQuestionResponse:
       type: object
       additionalProperties: false
-      required: [sessionId, mode]
+      required: [sessionId, mode, message]
       properties:
         sessionId: { type: string }
         mode:
           type: string
           description: Whether the tutor asks a Socratic prerequisite question or answers directly.
           enum: [SOCRATIC, ANSWER]
+        targetConceptId: { type: string, nullable: true }
+        targetConceptName: { type: string, nullable: true }
         gapConceptId: { type: string, nullable: true }
+        gapConceptName: { type: string, nullable: true }
         message: { type: string }
 
 paths:
