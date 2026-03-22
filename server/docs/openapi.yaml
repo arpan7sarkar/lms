@@ -147,6 +147,70 @@ components:
         processedAt: { type: string, format: date-time, nullable: true }
         uploadedAt: { type: string, format: date-time }
         chunkCount: { type: integer }
+    Concept:
+      type: object
+      additionalProperties: false
+      required: [id, name]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        posX: { type: number, nullable: true }
+        posY: { type: number, nullable: true }
+    ConceptEdge:
+      type: object
+      additionalProperties: false
+      required: [id, parentConceptId, childConceptId]
+      properties:
+        id: { type: string }
+        parentConceptId: { type: string }
+        childConceptId: { type: string }
+    CreateConceptRequest:
+      type: object
+      additionalProperties: false
+      required: [courseId, name]
+      properties:
+        courseId: { type: string }
+        name: { type: string }
+        description: { type: string }
+        posX: { type: number }
+        posY: { type: number }
+    UpdateConceptRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name: { type: string }
+        description: { type: string }
+        posX: { type: number }
+        posY: { type: number }
+    CreateConceptEdgeRequest:
+      type: object
+      additionalProperties: false
+      required: [parentConceptId, childConceptId]
+      properties:
+        parentConceptId: { type: string }
+        childConceptId: { type: string }
+    ExtractConceptsRequest:
+      type: object
+      additionalProperties: false
+      required: [courseId]
+      properties:
+        courseId: { type: string }
+        maxConcepts: { type: integer }
+    KnowledgeEntry:
+      type: object
+      additionalProperties: false
+      required: [conceptId, name, state]
+      properties:
+        conceptId: { type: string }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        posX: { type: number, nullable: true }
+        posY: { type: number, nullable: true }
+        state:
+          type: string
+          enum: [NOT_DEMONSTRATED, PARTIAL, DEMONSTRATED, NEEDS_REFRESH]
+        lastUpdated: { type: string, format: date-time, nullable: true }
     TutorQuestionRequest:
       type: object
       additionalProperties: false
@@ -158,14 +222,17 @@ components:
     TutorQuestionResponse:
       type: object
       additionalProperties: false
-      required: [sessionId, mode]
+      required: [sessionId, mode, message]
       properties:
         sessionId: { type: string }
         mode:
           type: string
           description: Whether the tutor asks a Socratic prerequisite question or answers directly.
           enum: [SOCRATIC, ANSWER]
+        targetConceptId: { type: string, nullable: true }
+        targetConceptName: { type: string, nullable: true }
         gapConceptId: { type: string, nullable: true }
+        gapConceptName: { type: string, nullable: true }
         message: { type: string }
 
 paths:
@@ -412,6 +479,193 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Envelope" }
+
+  /api/v1/concepts/extract:
+    post:
+      tags: [Concepts]
+      summary: AI-assisted concept extraction for a faculty course
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExtractConceptsRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Envelope" }
+
+  /api/v1/concepts:
+    post:
+      tags: [Concepts]
+      summary: Create a concept (faculty)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateConceptRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/Concept" }
+
+  /api/v1/concepts/edges:
+    post:
+      tags: [Concepts]
+      summary: Create a prerequisite edge (faculty)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateConceptEdgeRequest" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/ConceptEdge" }
+
+  /api/v1/concepts/edges/{edgeId}:
+    delete:
+      tags: [Concepts]
+      summary: Delete an edge (faculty)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: edgeId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Envelope" }
+
+  /api/v1/concepts/{id}:
+    patch:
+      tags: [Concepts]
+      summary: Update concept (faculty)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateConceptRequest" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/Concept" }
+    delete:
+      tags: [Concepts]
+      summary: Delete concept (faculty)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Envelope" }
+
+  /api/v1/concepts/course/{courseId}:
+    get:
+      tags: [Concepts]
+      summary: Get concept graph for a course
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Envelope" }
+
+  /api/v1/knowledge/{courseId}:
+    get:
+      tags: [Knowledge]
+      summary: Get student knowledge state for all concepts in a course
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/KnowledgeEntry" }
+
+  /api/v1/knowledge/{courseId}/{conceptId}:
+    get:
+      tags: [Knowledge]
+      summary: Get student knowledge state for one concept
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema: { type: string }
+        - in: path
+          name: conceptId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/KnowledgeEntry" }
 
   /api/v1/tutor/question:
     post:

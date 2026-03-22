@@ -6,9 +6,12 @@ import multer from "multer";
 import { env } from "./config/env";
 import { sendError } from "./lib/http";
 import { authRouter } from "./routes/auth";
+import { conceptsRouter } from "./routes/concepts";
 import { coursesRouter } from "./routes/courses";
 import { documentsRouter } from "./routes/documents";
 import { healthRouter } from "./routes/health";
+import { knowledgeRouter } from "./routes/knowledge";
+import { tutorRouter } from "./routes/tutor";
 
 export const createApp = () => {
   const app = express();
@@ -31,7 +34,10 @@ export const createApp = () => {
   );
   app.use("/api/v1/auth", authRouter);
   app.use("/api/v1/courses", coursesRouter);
+  app.use("/api/v1/concepts", conceptsRouter);
   app.use("/api/v1/documents", documentsRouter);
+  app.use("/api/v1/knowledge", knowledgeRouter);
+  app.use("/api/v1/tutor", tutorRouter);
   app.use("/health", healthRouter);
   app.use("/api/v1/health", healthRouter);
 
