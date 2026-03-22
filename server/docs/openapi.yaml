@@ -197,6 +197,20 @@ components:
       properties:
         courseId: { type: string }
         maxConcepts: { type: integer }
+    KnowledgeEntry:
+      type: object
+      additionalProperties: false
+      required: [conceptId, name, state]
+      properties:
+        conceptId: { type: string }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        posX: { type: number, nullable: true }
+        posY: { type: number, nullable: true }
+        state:
+          type: string
+          enum: [NOT_DEMONSTRATED, PARTIAL, DEMONSTRATED, NEEDS_REFRESH]
+        lastUpdated: { type: string, format: date-time, nullable: true }
     TutorQuestionRequest:
       type: object
       additionalProperties: false
@@ -599,6 +613,56 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Envelope" }
+
+  /api/v1/knowledge/{courseId}:
+    get:
+      tags: [Knowledge]
+      summary: Get student knowledge state for all concepts in a course
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/KnowledgeEntry" }
+
+  /api/v1/knowledge/{courseId}/{conceptId}:
+    get:
+      tags: [Knowledge]
+      summary: Get student knowledge state for one concept
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: courseId
+          required: true
+          schema: { type: string }
+        - in: path
+          name: conceptId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/Envelope"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/KnowledgeEntry" }
 
   /api/v1/tutor/question:
     post:
